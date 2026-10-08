@@ -53,7 +53,9 @@ client.on("ready", () => {
   console.log(
     "When a ticket moves to In review, I will verify the checker repro, regression-check related areas from the diff, and post verification screenshots.",
   );
-  void backfillInReviewTickets();
+  if (backfillInReviewOnStartEnabled()) {
+    void backfillInReviewTickets();
+  }
 });
 
 client.on("ticketUpdate", (event) => {
@@ -292,6 +294,11 @@ async function loadTicket(ticketId) {
   };
 }
 
+function backfillInReviewOnStartEnabled() {
+  const raw = process.env.REVIEWER_BACKFILL_IN_REVIEW?.trim().toLowerCase();
+  return raw === "true" || raw === "1";
+}
+
 async function backfillInReviewTickets() {
   const workspaceId = client.user?.workspaceId;
   if (!workspaceId) return;
@@ -301,7 +308,9 @@ async function backfillInReviewTickets() {
     const rows = Array.isArray(channels) ? channels : channels?.data ?? [];
     const inReview = rows.filter((row) => row?.status === "in_review");
     if (inReview.length > 0) {
-      console.log(`Backfill: ${inReview.length} ticket(s) already In review.`);
+      console.log(
+        `Backfill (REVIEWER_BACKFILL_IN_REVIEW): scheduling ${inReview.length} In review ticket(s).`,
+      );
     }
     for (const row of inReview) {
       debouncer.schedule(row.id, () => {
