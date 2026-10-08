@@ -1,3 +1,20 @@
+/**
+ * Cursor Agents API treats `composer-2.5` without params as the Fast variant.
+ * @see https://forum.cursor.com/t/sdk-reports-composer-2-5-but-usage-dashboard-bills-composer-2-5-fast/163046
+ */
+export function resolveCursorModel() {
+  const id = process.env.CURSOR_MODEL?.trim() || "composer-2.5";
+  const model = { id };
+  const wantFast = process.env.CURSOR_MODEL_FAST?.trim().toLowerCase();
+  if (id === "composer-2.5-fast" || wantFast === "true" || wantFast === "1") {
+    return model;
+  }
+  if (id === "composer-2.5") {
+    model.params = [{ id: "fast", value: "false" }];
+  }
+  return model;
+}
+
 export function cursorAgentOptions(overrides = {}) {
   const apiKey = process.env.CURSOR_API_KEY?.trim();
   if (!apiKey) {
@@ -6,7 +23,7 @@ export function cursorAgentOptions(overrides = {}) {
     );
   }
 
-  const model = { id: process.env.CURSOR_MODEL?.trim() || "composer-2.5" };
+  const model = resolveCursorModel();
   const repoUrl =
     overrides.repoUrl?.trim() || process.env.CURSOR_REPO_URL?.trim();
   const startingRef =

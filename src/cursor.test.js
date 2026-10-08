@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { cursorAgentOptions } from "./cursor.js";
+import { cursorAgentOptions, resolveCursorModel } from "./cursor.js";
 
 const keys = [
   "CURSOR_API_KEY",
@@ -8,6 +8,8 @@ const keys = [
   "CURSOR_REPO_REF",
   "CURSOR_REPO_PATH",
   "CURSOR_CLOUD_ENVIRONMENT",
+  "CURSOR_MODEL",
+  "CURSOR_MODEL_FAST",
 ];
 const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
 
@@ -16,6 +18,21 @@ afterEach(() => {
     if (original[key] === undefined) delete process.env[key];
     else process.env[key] = original[key];
   }
+});
+
+test("composer-2.5 requests standard variant (not Fast)", () => {
+  delete process.env.CURSOR_MODEL;
+  delete process.env.CURSOR_MODEL_FAST;
+  expect(resolveCursorModel()).toEqual({
+    id: "composer-2.5",
+    params: [{ id: "fast", value: "false" }],
+  });
+});
+
+test("CURSOR_MODEL_FAST=true skips fast=false param", () => {
+  delete process.env.CURSOR_MODEL;
+  process.env.CURSOR_MODEL_FAST = "true";
+  expect(resolveCursorModel()).toEqual({ id: "composer-2.5" });
 });
 
 test("cloud verification run does not auto-create a PR", () => {
