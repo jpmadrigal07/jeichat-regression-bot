@@ -60,13 +60,15 @@ function formatBrowseUrls(urls) {
 }
 
 /** Screenshots are posted to the ticket as proof — capture only when UI is ready. */
-function screenshotProofBullets(isCloud, artifactDir, maxShots, localDir) {
+function screenshotProofBullets(isCloud, artifactDir, maxPostedToChat, localDir) {
+  const dir = isCloud ? artifactDir : `./${localDir}`;
   const pathLine = isCloud
-    ? `   - Save up to **${maxShots}** PNG proof screenshots under \`${artifactDir}/\` (e.g. \`${artifactDir}/01-repro.png\`). The regression bot downloads these via Cursor artifacts and posts them to the ticket.`
-    : `   - Save up to **${maxShots}** PNG proof screenshots under \`./${localDir}/\` in the repo root.`;
+    ? `   - Save PNG proof under \`${artifactDir}/\` (e.g. \`${artifactDir}/01-checker-repro.png\`, \`02-done-when-….png\`). Use **one file per proven UI state** (checker repro, each **Done when** item, each regression UI check you exercised). **Capture as many as needed** to show it working — not limited to five.`
+    : `   - Save PNG proof under \`./${localDir}/\` with the same naming pattern.`;
 
   return [
     pathLine,
+    `   - The regression bot posts up to **${maxPostedToChat}** latest images to JeiChat; keep numbered finals in \`${dir}/\` and delete loading/debug shots.`,
     "   - **Order:** Complete the full browser flow first (login → navigate → interact → confirm behavior). **Screenshot is the last action on each screen** — never capture right after `goto` / navigation.",
     "",
     "   **Mandatory wait-before-screenshot protocol (every UI proof shot):**",

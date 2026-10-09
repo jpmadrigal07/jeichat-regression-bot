@@ -1,4 +1,5 @@
-const DEFAULT_MAX_SCREENSHOTS = 5;
+const DEFAULT_MAX_SCREENSHOTS = 12;
+const HARD_CAP_SCREENSHOTS = 30;
 
 /** Max verification PNGs downloaded from Cursor and posted to JeiChat. */
 export function maxVerificationScreenshots() {
@@ -6,7 +7,7 @@ export function maxVerificationScreenshots() {
   if (raw) {
     const parsed = Number(raw);
     if (Number.isInteger(parsed) && parsed > 0) {
-      return Math.min(parsed, 10);
+      return Math.min(parsed, HARD_CAP_SCREENSHOTS);
     }
   }
   return DEFAULT_MAX_SCREENSHOTS;
