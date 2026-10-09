@@ -1,0 +1,7 @@
+{
+  "globalBoot": true,
+  "commands": [
+    "bun install",
+    "cd apps/web && bun run build"
+  ]
+}

@@ -5,6 +5,7 @@ import {
   parseVerifyScope,
   resolveVerifyBrowseUrls,
 } from "./verify-spec.js";
+import { cleanInstallVerifyBullets } from "./verify-boot.js";
 import { verifyDevStack } from "./verify-stack.js";
 
 /** Cursor Cloud stores run outputs under this directory (also visible via Agent.listArtifacts). */
@@ -40,7 +41,7 @@ export function regressionScopeInstructions(options = {}) {
 
 /**
  * Prompt block: run the app, reproduce checker brief + ticket spec, save proof screenshots.
- * @param {{ pageUrl?: string | null; runtime?: string; description?: string | null }} ctx
+ * @param {{ pageUrl?: string | null; runtime?: string; description?: string | null; verifyScope?: 'browser' | 'static-only'; browseUrls?: string[]; verifyCommands?: string | null; bootConfig?: import("./verify-boot-config.js").VerifyBootConfig | null }} ctx
  */
 function lightVerifyEnabled() {
   const raw = process.env.REVIEWER_LIGHT_VERIFY?.trim().toLowerCase();
@@ -56,6 +57,20 @@ function formatBrowseUrls(urls) {
   }
   const list = urls.map((u) => `     - ${u}`).join("\n");
   return `   - Open these URLs/paths from **## Routes**:\n${list}`;
+}
+
+/** Screenshots are posted to the ticket as proof — capture only when UI is ready. */
+function screenshotProofBullets(isCloud, artifactDir, maxShots, localDir) {
+  const pathLine = isCloud
+    ? `   - Save up to **${maxShots}** PNG proof screenshots under \`${artifactDir}/\` (e.g. \`${artifactDir}/01-repro.png\`). The regression bot downloads these via Cursor artifacts and posts them to the ticket.`
+    : `   - Save up to **${maxShots}** PNG proof screenshots under \`./${localDir}/\` in the repo root.`;
+
+  return [
+    pathLine,
+    "   - **Screenshot proof:** Each PNG must show the checker repro or **Done when** behavior clearly. Reviewers treat these as evidence — unusable shots count as incomplete verification.",
+    "   - **Wait before capture:** Do not screenshot while the page is still loading. Wait until spinners/skeletons are gone, main content and images are visible, and dialogs or sheets are fully open. Use browser snapshot/polling and **retry** after a few seconds if anything still says Loading or looks empty.",
+    "   - Re-navigate or reopen the flow and capture again if the first shot was mid-transition, blurred, or missing the element under test.",
+  ];
 }
 
 export function verificationInstructions(ctx = {}) {
@@ -88,6 +103,8 @@ export function verificationInstructions(ctx = {}) {
   const authBullet =
     "   - When auth is required: **## Test account** in the description first, then access/login notes in the prompt, then `REVIEWER_TEST_EMAIL` / `REVIEWER_TEST_PASSWORD` from the cloud environment.";
 
+  const cleanInstallBullets = cleanInstallVerifyBullets(ctx.bootConfig ?? null);
+
   const lines = [];
 
   if (staticOnly) {
@@ -97,6 +114,7 @@ export function verificationInstructions(ctx = {}) {
       "   - Read the PR diff first.",
       commandsBullet,
       checkerBullet,
+      ...cleanInstallBullets,
       "   - Do **not** start the dev server or walk UI unless the spec, checker brief, or diff proves you must.",
     );
   } else if (light) {
@@ -105,6 +123,7 @@ export function verificationInstructions(ctx = {}) {
       ...(envBullet ? [envBullet] : []),
       "   - Read the PR diff first. Only run commands needed for the files you changed.",
       commandsBullet,
+      ...cleanInstallBullets,
       "   - Prefer targeted checks over the full monorepo suite unless the diff is wide.",
       "   - Start `bun run dev` **only** if you must exercise UI; skip DB migrate unless the diff touches schema/migrations.",
       authBullet,
@@ -118,6 +137,7 @@ export function verificationInstructions(ctx = {}) {
       ...(envBullet ? [envBullet] : []),
       "   - Run `bun run test` from the monorepo root (or the smallest relevant package tests).",
       commandsBullet,
+      ...cleanInstallBullets,
       "   - Apply DB migrations if schema changed: `cd apps/api && bun run db:migrate`.",
       `   - Start the stack: \`bun run dev\` (web ${web}). Wait until \`curl -sf ${healthUrl}\` succeeds.`,
       authBullet,
@@ -128,15 +148,14 @@ export function verificationInstructions(ctx = {}) {
   }
 
   if (!staticOnly) {
-    if (isCloud) {
-      lines.push(
-        `   - Save up to **${maxShots}** PNG screenshots under \`${artifactDir}/\` (e.g. \`${artifactDir}/01-repro.png\`). The reviewer bot downloads these via Cursor artifacts and posts them to the ticket.`,
-      );
-    } else {
-      lines.push(
-        `   - Save up to **${maxShots}** PNG screenshots under \`./${VERIFICATION_SCREENSHOT_PREFIX}/\` in the repo root.`,
-      );
-    }
+    lines.push(
+      ...screenshotProofBullets(
+        isCloud,
+        artifactDir,
+        maxShots,
+        VERIFICATION_SCREENSHOT_PREFIX,
+      ),
+    );
   }
 
   lines.push(

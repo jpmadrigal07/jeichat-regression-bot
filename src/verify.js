@@ -2,6 +2,7 @@ import { Agent, CursorAgentError } from "@cursor/sdk";
 import { cursorAgentOptions } from "./cursor.js";
 import { cursorCloudEnvDirections } from "./cloud-env-hint.js";
 import { verificationInstructions } from "./verify-instructions.js";
+import { loadVerifyBootConfig } from "./verify-boot-config.js";
 import { ticketPageUrl } from "./ticket-link.js";
 import { enrichGitContextFromPullRequest } from "./github-pr.js";
 import { reviewRunTimeoutMs } from "./status.js";
@@ -15,7 +16,7 @@ function formatGitBlock(ctx) {
   return lines.join("\n");
 }
 
-export function reviewPrompt(ticket, ctx) {
+export function reviewPrompt(ticket, ctx, bootConfig = null) {
   const pageUrl = ticket.pageUrl || ticketPageUrl(ticket);
   const checkReport = ticket.checkReport?.trim() || "(none)";
   const accessBlock = ticket.accessContext?.trim();
@@ -26,6 +27,7 @@ export function reviewPrompt(ticket, ctx) {
     pageUrl,
     description: ticket.description,
     runtime: process.env.CURSOR_RUNTIME,
+    bootConfig,
   });
 
   const checkoutNote =
@@ -194,6 +196,10 @@ export async function verifyTicket(ticket, ctx, options = {}) {
     return "I need a `PR:` or `Branch:` line in this thread before I can review.";
   }
 
+  const bootRef =
+    enriched.headSha ?? enriched.branch ?? enriched.startingRef ?? null;
+  const bootConfig = await loadVerifyBootConfig(ticket.repoUrl, bootRef);
+
   let agent;
   let promptCtx = enriched;
   try {
@@ -207,7 +213,7 @@ export async function verifyTicket(ticket, ctx, options = {}) {
     if (typeof options.onRunStarted === "function") {
       options.onRunStarted({ agentId });
     }
-    const run = await agent.send(reviewPrompt(ticket, promptCtx));
+    const run = await agent.send(reviewPrompt(ticket, promptCtx, bootConfig));
     const result = await waitForRun(run, reviewRunTimeoutMs());
     if (result.status !== "finished") {
       return `I could not finish the review (${result.status}${

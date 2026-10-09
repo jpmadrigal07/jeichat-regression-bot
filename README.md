@@ -23,6 +23,7 @@ Copy-paste templates and a step-by-step checklist:
 | `src/cloud-env-hint.js` | Cursor Cloud: secrets in `process.env`, no committed `.env` |
 | `src/verify-stack.js` | `VERIFY_APP_*` dev URLs + health check in prompts |
 | `src/verify-spec.js` | Parse ticket `## Routes`, `## Verify commands`, `## Verify scope` |
+| `src/verify-boot-config.js` | Optional app `.jeichat/verify-boot.json`; else ticket **## Verify commands** + bot env boot |
 | `src/verification-artifacts.js` | List/download Cursor artifacts; `REVIEWER_POST_SCREENSHOTS` gate |
 | `src/attachments.js` | Presign → R2 → post message with `attachmentIds` |
 | `src/screenshots.js` | Shared image helpers (`MAX_SCREENSHOTS`, content types) |
@@ -65,5 +66,6 @@ This bot is one long-running process. It is **not** a website — no domain or H
 1. Push this repo to GitHub.
 2. **New resource → Application** → this repo, build pack **Dockerfile**.
 3. Set env vars from `.env.example` (live `JEICHAT_API_URL`, regression reviewer token, `CURSOR_*`, optional `FIXER_BOT_USER_ID`).
+4. Optional: **`VERIFY_GLOBAL_BOOT_COMMANDS`** on the bot when every review needs the same install/build prelude; otherwise use **## Verify commands** on tickets.
 
 `docker-compose.yml` is a one-service wrapper for hosts that prefer Compose over a plain Dockerfile.
