@@ -18,7 +18,7 @@ import {
   downloadVerificationArtifacts,
   postVerificationScreenshotsEnabled,
 } from "./verification-artifacts.js";
-import { verifyTicket } from "./verify.js";
+import { disposeReviewAgent, verifyTicket } from "./verify.js";
 import { latestCheckVerdict, checkReportFromMessage } from "./check-report.js";
 import { createRunTracker, cursorAgentUrl, formatReviewStatus } from "./status.js";
 import {
@@ -204,6 +204,7 @@ async function runReview(ticketId, options = {}) {
     });
 
     const summary = await verifyTicket(ticket, git, {
+      retainAgent: true,
       onAgent(agent) {
         agentRef = agent;
       },
@@ -227,6 +228,8 @@ async function runReview(ticketId, options = {}) {
       },
     });
 
+    await client.send(ticketId, summary);
+
     if (
       postVerificationScreenshotsEnabled() &&
       agentRef &&
@@ -237,19 +240,17 @@ async function runReview(ticketId, options = {}) {
         await sendMessageWithAttachments(
           client,
           ticketId,
-          summary,
+          "**Screenshot proof** (after verification finished):",
           files,
         );
-        return;
       }
     }
-
-    await client.send(ticketId, summary);
   } catch (error) {
     const detail = error instanceof Error ? error.message : "unknown error";
     console.error("review failed", error);
     await client.send(ticketId, `Review failed: ${detail}`);
   } finally {
+    await disposeReviewAgent(agentRef);
     runs.end(ticketId);
     reviewing.delete(ticketId);
   }

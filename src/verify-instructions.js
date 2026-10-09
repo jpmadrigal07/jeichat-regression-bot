@@ -67,9 +67,19 @@ function screenshotProofBullets(isCloud, artifactDir, maxShots, localDir) {
 
   return [
     pathLine,
-    "   - **Screenshot proof:** Each PNG must show the checker repro or **Done when** behavior clearly. Reviewers treat these as evidence — unusable shots count as incomplete verification.",
-    "   - **Wait before capture:** Do not screenshot while the page is still loading. Wait until spinners/skeletons are gone, main content and images are visible, and dialogs or sheets are fully open. Use browser snapshot/polling and **retry** after a few seconds if anything still says Loading or looks empty.",
-    "   - Re-navigate or reopen the flow and capture again if the first shot was mid-transition, blurred, or missing the element under test.",
+    "   - **Order:** Complete the full browser flow first (login → navigate → interact → confirm behavior). **Screenshot is the last action on each screen** — never capture right after `goto` / navigation.",
+    "",
+    "   **Mandatory wait-before-screenshot protocol (every UI proof shot):**",
+    "   1. Finish the step (open page, open modal, send message, close thread, etc.).",
+    "   2. **Snapshot before screenshot:** Run \`browser_snapshot\` (or Playwright \`page.accessibility.snapshot\` / \`getByRole\`) and read the tree.",
+    "   3. **Do not save a PNG** if the snapshot still shows any of: loading spinners, skeleton rows, blank main area, \"Loading…\", \"Could not load\", disabled shell with no data, or auth/error toasts you have not fixed.",
+    "   4. **Poll:** wait 2–3 seconds, snapshot again. Repeat up to **10 times** (~30s) until the **Done when** / checker element is visible (e.g. thread title, CTA label, closed-state copy, message list with content).",
+    "   5. **Only then** take the screenshot (browser tool or Playwright \`page.screenshot\`) and write the file to the artifact path.",
+    "   6. If still loading after retries: **do not** file a misleading PNG — note **FAIL** / blocked in **Verification** and skip that screenshot.",
+    "",
+    "   - **Forbidden:** Screenshot on first paint, during route transition, or while network requests for the main list/detail are still in flight.",
+    "   - **Playwright:** Prefer \`waitForLoadState('networkidle')\` plus \`locator.waitFor({ state: 'visible' })\` on the element you will show in the proof image before \`screenshot()\`.",
+    "   - Remove exploratory PNGs; keep only finals that show the verified UI state.",
   ];
 }
 

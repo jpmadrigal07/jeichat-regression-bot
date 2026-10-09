@@ -25,11 +25,11 @@ export function pickVerificationArtifactPaths(artifacts, max = 5) {
   const rows = Array.isArray(artifacts) ? artifacts : [];
   const preferred = rows.filter((row) => isPreferredVerificationPath(row.path));
   const pool = preferred.length > 0 ? preferred : rows.filter((row) => IMAGE_EXT.test(row.path ?? ""));
-  return pool
+  const sorted = pool
     .slice()
-    .sort((a, b) => String(a.path).localeCompare(String(b.path)))
-    .slice(0, max)
-    .map((row) => row.path);
+    .sort((a, b) => String(a.path).localeCompare(String(b.path)));
+  // Prefer the latest filenames (agent should save proof shots last).
+  return sorted.slice(-max).map((row) => row.path);
 }
 
 /**

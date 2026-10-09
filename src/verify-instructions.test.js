@@ -32,6 +32,9 @@ test("cloud verification block mentions artifact dir and cloud config", () => {
   expect(block).toContain("http://localhost:3999/health");
   expect(block).toContain("Regression");
   expect(block).toContain("checker report");
+  expect(block).toContain("Screenshot is the last action");
+  expect(block).toContain("Snapshot before screenshot");
+  expect(block).toContain("browser_snapshot");
 });
 
 test("verification uses Verify commands from ticket description", () => {

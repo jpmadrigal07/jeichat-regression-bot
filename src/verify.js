@@ -58,6 +58,7 @@ ${accessBlock || "(none — if the UI needs auth, use REVIEWER_TEST_EMAIL / REVI
 Your job:
 1. Inspect the **diff** on this branch vs its merge base. Summarize user-visible and important code changes (files, behavior). Be specific; quote paths.
 2. Run the verification checklist below: confirm the checker report, then **regression-test related behavior** that could break because of this change (see Regression section).
+   - For browser proof: **never** save a screenshot until \`browser_snapshot\` (or equivalent) shows the expected UI loaded — loading/skeleton screens are not valid proof.
 3. Reply in Markdown with:
    - **Changes** — bullet summary of the PR diff
    - **Verification** — checker repro (commands + browser steps) and screenshot filenames
@@ -86,7 +87,7 @@ export function composeReviewReply(modelText, ctx) {
   return `${trimmed}\n\n${gitBlock}`;
 }
 
-async function disposeAgent(agent) {
+export async function disposeReviewAgent(agent) {
   if (!agent) return;
   if (typeof agent[Symbol.asyncDispose] === "function") {
     await agent[Symbol.asyncDispose]();
@@ -180,7 +181,7 @@ async function createReviewAgent(ticket, ctx) {
 /**
  * @param {object} ticket
  * @param {{ prUrl?: string | null; branch?: string | null }} ctx
- * @param {{ onAgent?: (agent: import("@cursor/sdk").SDKAgent) => void; onRunStarted?: (info: { agentId?: string | null }) => void }} options
+ * @param {{ onAgent?: (agent: import("@cursor/sdk").SDKAgent) => void; onRunStarted?: (info: { agentId?: string | null }) => void; retainAgent?: boolean }} options
  */
 export async function verifyTicket(ticket, ctx, options = {}) {
   let enriched = { ...ctx };
@@ -230,6 +231,8 @@ export async function verifyTicket(ticket, ctx, options = {}) {
     }
     throw error;
   } finally {
-    await disposeAgent(agent);
+    if (!options.retainAgent) {
+      await disposeReviewAgent(agent);
+    }
   }
 }
